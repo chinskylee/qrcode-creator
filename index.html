@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>二维码生成器 - QR Code Creator</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- QR Code Styling Library -->
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.9.2/lib/qr-code-styling.js"></script>
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --bg: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --success: #22c55e;
+            --error: #ef4444;
+            --radius: 12px;
+            --radius-lg: 20px;
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg) 0%, #0c1222 100%);
+            z-index: -1;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            margin-bottom: 32px;
+            position: sticky;
+            top: 16px;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .logo h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--text) 0%, var(--primary-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .style-btn {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .style-btn:hover {
+            border-color: var(--primary-light);
+            color: var(--text);
+        }
+
+        .style-btn.active {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-light);
+        }
+
+        .style-preview {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .style-preview .dot {
+            width: 8px;
+            height: 8px;
+            background: currentColor;
+            border-radius: 2px;
+        }
+
+        .style-preview .dot-rounded {
+            border-radius: 50%;
+        }
+
+        .style-preview .dot-circle {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 8px 0 0 currentColor, -8px 0 0 currentColor;
+        }
+
+        .color-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .color-item {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .color-picker {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker::-webkit-color-swatch {
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+        }
+
+        .color-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .toggle-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: var(--bg);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .toggle-switch.active {
+            background: var(--primary);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(22px);
+        }
+
+        .slider-wrapper {
+            padding: 8px 0;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .slider-value {
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+            transition: var(--transition);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .qr-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .qr-canvas-wrapper {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+        }
+
+        #qr-canvas {
+            position: relative;
+            display: block;
+            width: 300px;
+            height: 300px;
+            contain: layout paint size;
+            overflow: hidden;
+        }
+
+        .qr-layer {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: none;
+            will-change: opacity;
+            pointer-events: none;
+        }
+
+        .qr-layer.active {
+            opacity: 1;
+        }
+
+        .qr-layer canvas,
+        .qr-layer svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: white;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary-light);
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            padding: 14px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
+            animation: toastIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.success svg {
+            color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--error);
+        }
+
+        .toast.error svg {
+            color: var(--error);
+        }
+
+        .logo-upload {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .logo-preview {
+            width: 48px;
+            height: 48px;
+            background: var(--bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .logo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .logo-preview svg {
+            width: 24px;
+            height: 24px;
+            color: var(--text-muted);
+        }
+
+        .logo-actions {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+        }
+
+        .logo-actions label {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-actions label,
+        #logo-remove {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+
+        .perf-panel {
+            position: fixed;
+            left: 16px;
+            bottom: 16px;
+            z-index: 1200;
+            width: 280px;
+            max-width: calc(100vw - 32px);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 12px;
+            padding: 12px;
+            color: #e2e8f0;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: 0 10px 24px rgba(2, 6, 23, 0.4);
+            backdrop-filter: blur(6px);
+        }
+
+        .perf-panel.hidden {
+            display: none;
+        }
+
+        .perf-panel-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #c4b5fd;
+            letter-spacing: 0.01em;
+        }
+
+        .perf-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 4px 8px;
+        }
+
+        .perf-key {
+            color: #94a3b8;
+        }
+
+        .perf-val {
+            color: #f8fafc;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .perf-hint {
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 11px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 16px;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 16px;
+                padding: 16px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .style-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .action-row {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <title>QR Code Creator</title>
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                </div>
+                <h1>QR Code Creator</h1>
+            </div>
+        </header>
+
+        <section>
+            <div class="main-grid">
+                <div class="card">
+                    <h2 class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <title>设置图标</title>
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                        </svg>
+                        设置
+                    </h2>
+
+                    <div class="form-group">
+                        <label class="form-label">内容</label>
+                        <textarea id="qr-content" class="form-textarea" placeholder="输入文本、网址或任意内容...">https://example.com</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">风格</label>
+                        <div class="style-grid">
+                            <button type="button" class="style-btn active" data-style="square">
+                                <span class="style-preview"><span class="dot"></span></span>
+                                经典
+                            </button>
+                            <button type="button" class="style-btn" data-style="dots">
+                                <span class="style-preview"><span class="dot-circle"></span></span>
+                                圆点
+                            </button>
+                            <button type="button" class="style-btn" data-style="rounded">
+                                <span class="style-preview"><span class="dot dot-rounded"></span></span>
+                                圆角
+                            </button>
+                            <button type="button" class="style-btn" data-style="extra-rounded">
+                                <span class="style-preview"><span class="dot dot-rounded" style="width:10px;height:10px;"></span></span>
+                                大圆角
+                            </button>
+                            <button type="button" class="style-btn" data-style="classy">
+                                <span class="style-preview">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                        <title>优雅风格预览</title>
+                                        <circle cx="5" cy="5" r="3"/>
+                                        <circle cx="15" cy="15" r="3"/>
+                                        <rect x="7" y="7" width="6" height="6" rx="2"/>
+                                    </svg>
+                                </span>
+                                优雅
+                            </button>
+                            <button type="button" class="style-btn" data-style="classy-rounded">
+                                <span class="style-preview">
+                                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                                        <title>圆雅风格预览</title>
+                                        <circle cx="5" cy="5" r="3"/>
+                                        <circle cx="15" cy="15" r="3"/>
+                                        <circle cx="10" cy="10" r="4"/>
+                                    </svg>
+                                </span>
+                                圆雅
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">二维码颜色</label>
+                        <div class="color-row">
+                            <div class="color-item">
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="dots-color" class="color-picker" value="#000000">
+                                    <span class="color-label">前景色</span>
+                                </div>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="bg-color" class="color-picker" value="#ffffff">
+                                    <span class="color-label">背景色</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="toggle-row">
+                            <span class="toggle-label">渐变色</span>
+                            <div id="gradient-toggle" class="toggle-switch"></div>
+                        </div>
+                    </div>
+
+                    <div id="gradient-colors" class="form-group hidden">
+                        <label class="form-label">渐变颜色</label>
+                        <div class="color-row">
+                            <div class="color-item">
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="gradient-start" class="color-picker" value="#667eea">
+                                    <span class="color-label">起始</span>
+                                </div>
+                            </div>
+                            <div class="color-item">
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="gradient-end" class="color-picker" value="#764ba2">
+                                    <span class="color-label">结束</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Logo</label>
+                        <div class="logo-upload">
+                            <div class="logo-preview" id="logo-preview">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <title>Logo 占位图</title>
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <path d="M21 15l-5-5L5 21"/>
+                                </svg>
+                            </div>
+                            <div class="logo-actions">
+                                <label class="btn btn-secondary">
+                                    <input type="file" id="logo-upload" accept="image/*" hidden>
+                                    上传
+                                </label>
+                                <button type="button" id="logo-remove" class="btn btn-secondary hidden">移除</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="slider-wrapper">
+                            <div class="slider-header">
+                                <span class="form-label">尺寸</span>
+                                <span class="slider-value" id="size-value">300px</span>
+                            </div>
+                            <input type="range" id="qr-size" class="slider" min="128" max="512" value="300">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="card-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <title>二维码预览</title>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        预览
+                    </h2>
+                    
+                    <div class="qr-preview">
+                        <div class="qr-canvas-wrapper">
+                            <div id="qr-canvas"></div>
+                        </div>
+                        
+                        <div class="action-row">
+                            <button type="button" id="btn-copy" class="btn btn-secondary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <title>复制二维码</title>
+                                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                </svg>
+                                复制
+                            </button>
+                            <button type="button" id="btn-download-png" class="btn btn-primary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <title>下载 PNG</title>
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                    <polyline points="7,10 12,15 17,10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                PNG
+                            </button>
+                            <button type="button" id="btn-download-svg" class="btn btn-primary">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <title>下载 SVG</title>
+                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                    <polyline points="7,10 12,15 17,10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                SVG
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <aside id="perf-panel" class="perf-panel hidden" aria-live="polite">
+        <div class="perf-panel-title">Render Diagnostics</div>
+        <div class="perf-grid">
+            <span class="perf-key">Last update</span><span id="perf-last" class="perf-val">0.00 ms</span>
+            <span class="perf-key">Avg (last 20)</span><span id="perf-avg" class="perf-val">0.00 ms</span>
+            <span class="perf-key">Peak</span><span id="perf-peak" class="perf-val">0.00 ms</span>
+            <span class="perf-key">Attempts</span><span id="perf-attempts" class="perf-val">0</span>
+            <span class="perf-key">Commits</span><span id="perf-commits" class="perf-val">0</span>
+            <span class="perf-key">Skipped swaps</span><span id="perf-skips" class="perf-val">0</span>
+            <span class="perf-key">Queue depth</span><span id="perf-queue" class="perf-val">0</span>
+        </div>
+        <div class="perf-hint">Append <code>?perf=1</code> to URL to toggle.</div>
+    </aside>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        (() => {
+            'use strict';
+
+            let qrCode = null;
+            let pendingUpdateFrame = null;
+            let isApplyingUpdate = false;
+            let pendingConfigPatch = null;
+            let qrLayers = [];
+            let qrInstances = [];
+            let activeQrIndex = 0;
+            let renderTicket = 0;
+            let sizeCommitTimer = null;
+            let lastSizeRenderCommitAt = 0;
+            let logoReadToken = 0;
+
+            const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+
+            const PERF_ENABLED = (() => {
+                try {
+                    return new URLSearchParams(window.location.search).get('perf') === '1';
+                } catch {
+                    return false;
+                }
+            })();
+
+            const perfStats = {
+                attempts: 0,
+                commits: 0,
+                skippedSwaps: 0,
+                queueDepth: 0,
+                lastMs: 0,
+                avgMs: 0,
+                peakMs: 0,
+                samples: []
+            };
+
+            const perfView = {
+                panel: null,
+                last: null,
+                avg: null,
+                peak: null,
+                attempts: null,
+                commits: null,
+                skips: null,
+                queue: null
+            };
+
+            const DEFAULT_CONTENT = 'https://example.com';
+            const PLACEHOLDER_LOGO_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><title>Logo 占位图</title><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`;
+            
+            const state = {
+                content: DEFAULT_CONTENT,
+                style: 'square',
+                dotsColor: '#000000',
+                backgroundColor: '#ffffff',
+                useGradient: false,
+                gradientStart: '#667eea',
+                gradientEnd: '#764ba2',
+                size: 300,
+                logo: null
+            };
+
+            const styleConfigs = {
+                square: { dots: 'square', corners: 'square' },
+                dots: { dots: 'dots', corners: 'dot' },
+                rounded: { dots: 'rounded', corners: 'extra-rounded' },
+                'extra-rounded': { dots: 'extra-rounded', corners: 'extra-rounded' },
+                classy: { dots: 'classy', corners: 'classy' },
+                'classy-rounded': { dots: 'classy-rounded', corners: 'classy-rounded' }
+            };
+
+            function isQrLibraryReady() {
+                return typeof window.QRCodeStyling === 'function';
+            }
+
+            function isRenderBusy() {
+                return isApplyingUpdate
+                    || pendingConfigPatch !== null
+                    || pendingUpdateFrame !== null
+                    || sizeCommitTimer !== null;
+            }
+
+            function getDotsOptions() {
+                const dotsOptions = {
+                    type: styleConfigs[state.style].dots
+                };
+
+                if (state.useGradient) {
+                    dotsOptions.gradient = {
+                        type: 'linear',
+                        rotation: 0,
+                        colorStops: [
+                            { offset: 0, color: state.gradientStart },
+                            { offset: 1, color: state.gradientEnd }
+                        ]
+                    };
+                } else {
+                    dotsOptions.color = state.dotsColor;
+                }
+
+                return dotsOptions;
+            }
+
+            function getVisualOptionsPatch() {
+                return {
+                    dotsOptions: getDotsOptions(),
+                    cornersSquareOptions: {
+                        type: styleConfigs[state.style].corners,
+                        color: state.useGradient ? state.gradientStart : state.dotsColor
+                    },
+                    cornersDotOptions: {
+                        type: styleConfigs[state.style].corners,
+                        color: state.useGradient ? state.gradientStart : state.dotsColor
+                    }
+                };
+            }
+
+            function getQRCodeConfig() {
+                return {
+                    width: state.size,
+                    height: state.size,
+                    data: state.content,
+                    image: state.logo,
+                    backgroundOptions: {
+                        color: state.backgroundColor
+                    },
+                    ...getVisualOptionsPatch()
+                };
+            }
+
+            function getContainerSizePatch() {
+                return {
+                    width: state.size,
+                    height: state.size
+                };
+            }
+
+            function createQrLayer() {
+                const layer = document.createElement('div');
+                layer.className = 'qr-layer';
+                return layer;
+            }
+
+            function getCanvasFingerprint(canvas) {
+                if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                    return '';
+                }
+
+                const context = canvas.getContext('2d', { willReadFrequently: true });
+                if (!context) {
+                    return '';
+                }
+
+                const { width, height } = canvas;
+                const samplePositions = [
+                    0,
+                    Math.floor(width * 0.25),
+                    Math.floor(width * 0.5),
+                    Math.floor(width * 0.75),
+                    width - 1
+                ];
+
+                const rows = [
+                    0,
+                    Math.floor(height * 0.25),
+                    Math.floor(height * 0.5),
+                    Math.floor(height * 0.75),
+                    height - 1
+                ];
+
+                const parts = [`${width}x${height}`];
+                rows.forEach(y => {
+                    const imageData = context.getImageData(0, y, width, 1).data;
+                    samplePositions.forEach(x => {
+                        const pixelIndex = x * 4;
+                        const r = imageData[pixelIndex];
+                        const g = imageData[pixelIndex + 1];
+                        const b = imageData[pixelIndex + 2];
+                        const a = imageData[pixelIndex + 3];
+                        parts.push(`${x},${y}:${r}-${g}-${b}-${a}`);
+                    });
+                });
+
+                return parts.join('|');
+            }
+
+            function applyContainerSize(size = state.size) {
+                const snappedSize = Math.max(128, Math.min(512, Math.round(size)));
+                const canvasHost = document.getElementById('qr-canvas');
+                canvasHost.style.width = `${snappedSize}px`;
+                canvasHost.style.height = `${snappedSize}px`;
+
+                qrLayers.forEach(layer => {
+                    const canvas = layer.querySelector('canvas');
+                    if (canvas) {
+                        canvas.style.width = `${snappedSize}px`;
+                        canvas.style.height = `${snappedSize}px`;
+                    }
+
+                    const svg = layer.querySelector('svg');
+                    if (svg) {
+                        svg.style.width = `${snappedSize}px`;
+                        svg.style.height = `${snappedSize}px`;
+                    }
+                });
+            }
+
+            function scheduleSizeCommit(nextSize, sizeValueNode) {
+                if (sizeCommitTimer) {
+                    clearTimeout(sizeCommitTimer);
+                }
+
+                const commitSize = () => {
+                    if (state.size === nextSize) {
+                        return;
+                    }
+
+                    state.size = nextSize;
+                    if (sizeValueNode) {
+                        sizeValueNode.textContent = `${state.size}px`;
+                    }
+
+                    queueQRCodeUpdate({
+                        ...getContainerSizePatch()
+                    });
+                    lastSizeRenderCommitAt = performance.now();
+                };
+
+                const now = performance.now();
+                const shouldLeadCommit = now - lastSizeRenderCommitAt >= 100;
+                if (shouldLeadCommit) {
+                    commitSize();
+                }
+
+                const commit = () => {
+                    sizeCommitTimer = null;
+                    commitSize();
+                };
+
+                sizeCommitTimer = setTimeout(commit, 120);
+            }
+
+            function getQueueDepth() {
+                return pendingConfigPatch ? Object.keys(pendingConfigPatch).length : 0;
+            }
+
+            function updatePerfStatsDuration(durationMs) {
+                perfStats.lastMs = durationMs;
+                perfStats.peakMs = Math.max(perfStats.peakMs, durationMs);
+                perfStats.samples.push(durationMs);
+
+                if (perfStats.samples.length > 20) {
+                    perfStats.samples.shift();
+                }
+
+                const total = perfStats.samples.reduce((sum, item) => sum + item, 0);
+                perfStats.avgMs = perfStats.samples.length ? total / perfStats.samples.length : 0;
+            }
+
+            function initPerfPanel() {
+                if (!PERF_ENABLED) {
+                    return;
+                }
+
+                perfView.panel = document.getElementById('perf-panel');
+                perfView.last = document.getElementById('perf-last');
+                perfView.avg = document.getElementById('perf-avg');
+                perfView.peak = document.getElementById('perf-peak');
+                perfView.attempts = document.getElementById('perf-attempts');
+                perfView.commits = document.getElementById('perf-commits');
+                perfView.skips = document.getElementById('perf-skips');
+                perfView.queue = document.getElementById('perf-queue');
+
+                if (perfView.panel) {
+                    perfView.panel.classList.remove('hidden');
+                }
+
+                renderPerfPanel();
+            }
+
+            function renderPerfPanel() {
+                if (!PERF_ENABLED || !perfView.panel) {
+                    return;
+                }
+
+                perfView.last.textContent = `${perfStats.lastMs.toFixed(2)} ms`;
+                perfView.avg.textContent = `${perfStats.avgMs.toFixed(2)} ms`;
+                perfView.peak.textContent = `${perfStats.peakMs.toFixed(2)} ms`;
+                perfView.attempts.textContent = String(perfStats.attempts);
+                perfView.commits.textContent = String(perfStats.commits);
+                perfView.skips.textContent = String(perfStats.skippedSwaps);
+                perfView.queue.textContent = String(perfStats.queueDepth);
+            }
+
+            function ensureQRCodeSystem() {
+                if (qrLayers.length === 2 && qrInstances.length === 2) {
+                    return;
+                }
+
+                const canvasHost = document.getElementById('qr-canvas');
+                canvasHost.innerHTML = '';
+
+                qrLayers = [createQrLayer(), createQrLayer()];
+                qrLayers.forEach(layer => {
+                    canvasHost.appendChild(layer);
+                });
+
+                qrInstances = qrLayers.map(() => new QRCodeStyling({
+                    ...getQRCodeConfig(),
+                    type: 'canvas',
+                    imageOptions: {
+                        crossOrigin: 'anonymous',
+                        margin: 8
+                    }
+                }));
+
+                qrInstances.forEach((instance, index) => {
+                    instance.append(qrLayers[index]);
+                });
+
+                activeQrIndex = 0;
+                applyContainerSize();
+                qrLayers[0].classList.add('active');
+                qrLayers[1].classList.remove('active');
+                qrCode = qrInstances[activeQrIndex];
+            }
+
+            function swapToLayer(nextIndex) {
+                if (!qrLayers[nextIndex]) {
+                    return;
+                }
+
+                const currentLayer = qrLayers[activeQrIndex];
+                const nextLayer = qrLayers[nextIndex];
+
+                if (currentLayer) {
+                    currentLayer.classList.remove('active');
+                }
+
+                nextLayer.classList.add('active');
+                activeQrIndex = nextIndex;
+                qrCode = qrInstances[activeQrIndex];
+            }
+
+            function awaitLayerReady(layer, previousFingerprint, ticket) {
+                return new Promise(resolve => {
+                    let tries = 0;
+                    const maxTries = 24;
+
+                    const check = () => {
+                        if (ticket !== renderTicket) {
+                            resolve({ ready: false, changed: false });
+                            return;
+                        }
+
+                        const canvas = layer.querySelector('canvas');
+                        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                            if (tries >= maxTries) {
+                                resolve({ ready: false, changed: false });
+                                return;
+                            }
+
+                            tries += 1;
+                            requestAnimationFrame(check);
+                            return;
+                        }
+
+                        const nextFingerprint = getCanvasFingerprint(canvas);
+
+                        if (nextFingerprint !== previousFingerprint) {
+                            requestAnimationFrame(() => {
+                                resolve({ ready: true, changed: true });
+                            });
+                            return;
+                        }
+
+                        if (tries >= maxTries) {
+                            resolve({ ready: true, changed: false });
+                            return;
+                        }
+
+                        tries += 1;
+                        requestAnimationFrame(check);
+                    };
+
+                    check();
+                });
+            }
+
+            function initQRCode() {
+                applyContainerSize();
+                qrLayers = [];
+                qrInstances = [];
+                ensureQRCodeSystem();
+            }
+
+            function flushQRCodeUpdate() {
+                if (!pendingConfigPatch) {
+                    return;
+                }
+
+                if (!qrCode || qrLayers.length !== 2 || qrInstances.length !== 2) {
+                    initQRCode();
+                    pendingConfigPatch = null;
+                    return;
+                }
+
+                if (isApplyingUpdate) {
+                    return;
+                }
+
+                const patch = pendingConfigPatch;
+                pendingConfigPatch = null;
+                isApplyingUpdate = true;
+                if (PERF_ENABLED) {
+                    perfStats.attempts += 1;
+                }
+
+                const nextIndex = activeQrIndex === 0 ? 1 : 0;
+                const nextQrInstance = qrInstances[nextIndex];
+                const nextLayer = qrLayers[nextIndex];
+                const nextCanvasBeforeUpdate = nextLayer.querySelector('canvas');
+                const previousFingerprint = getCanvasFingerprint(nextCanvasBeforeUpdate);
+                const ticket = ++renderTicket;
+                const startedAt = performance.now();
+
+                let updateResult;
+                try {
+                    applyContainerSize();
+                    updateResult = nextQrInstance.update(getQRCodeConfig());
+                } catch {
+                    pendingConfigPatch = pendingConfigPatch ? { ...patch, ...pendingConfigPatch } : patch;
+                    isApplyingUpdate = false;
+                    updateQRCode();
+                    return;
+                }
+
+                Promise.resolve(updateResult)
+                    .then(() => awaitLayerReady(nextLayer, previousFingerprint, ticket))
+                    .then(result => {
+                        const hasNewerPatch = Boolean(pendingConfigPatch);
+                        const isCurrentTicket = ticket === renderTicket;
+                        const shouldSwap = result.ready && isCurrentTicket && !hasNewerPatch;
+
+                        if (shouldSwap) {
+                            swapToLayer(nextIndex);
+
+                            if (PERF_ENABLED) {
+                                perfStats.commits += 1;
+                            }
+                            return;
+                        }
+
+                        if (PERF_ENABLED) {
+                            perfStats.skippedSwaps += 1;
+                        }
+
+                        if (!result.ready && !hasNewerPatch) {
+                            pendingConfigPatch = pendingConfigPatch
+                                ? { ...patch, ...pendingConfigPatch }
+                                : patch;
+                            return;
+                        }
+
+                        if (!hasNewerPatch && !isCurrentTicket) {
+                            pendingConfigPatch = pendingConfigPatch
+                                ? { ...patch, ...pendingConfigPatch }
+                                : patch;
+                        }
+                    })
+                    .catch(() => {
+                        pendingConfigPatch = pendingConfigPatch ? { ...patch, ...pendingConfigPatch } : patch;
+                    })
+                    .finally(() => {
+                        isApplyingUpdate = false;
+
+                        if (PERF_ENABLED) {
+                            updatePerfStatsDuration(performance.now() - startedAt);
+                            perfStats.queueDepth = getQueueDepth();
+                            renderPerfPanel();
+                        }
+
+                        if (pendingConfigPatch) {
+                            updateQRCode();
+                        }
+                    });
+            }
+
+            function queueQRCodeUpdate(patch) {
+                pendingConfigPatch = pendingConfigPatch
+                    ? { ...pendingConfigPatch, ...patch }
+                    : { ...patch };
+
+                if (PERF_ENABLED) {
+                    perfStats.queueDepth = getQueueDepth();
+                    renderPerfPanel();
+                }
+
+                updateQRCode();
+            }
+
+            function updateQRCode() {
+                if (pendingUpdateFrame !== null) {
+                    return;
+                }
+
+                pendingUpdateFrame = requestAnimationFrame(() => {
+                    pendingUpdateFrame = null;
+                    flushQRCodeUpdate();
+                });
+            }
+
+            function initControls() {
+                const contentInput = document.getElementById('qr-content');
+                contentInput.addEventListener('input', debounce((e) => {
+                    const nextContent = e.target.value || DEFAULT_CONTENT;
+                    if (nextContent === state.content) {
+                        return;
+                    }
+
+                    state.content = nextContent;
+                    queueQRCodeUpdate({ data: state.content });
+                }, 300));
+
+                const styleButtons = document.querySelectorAll('.style-btn');
+                styleButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (btn.dataset.style === state.style) {
+                            btn.classList.add('active');
+                            return;
+                        }
+
+                        styleButtons.forEach(b => {
+                            b.classList.remove('active');
+                        });
+
+                        btn.classList.add('active');
+                        state.style = btn.dataset.style;
+                        queueQRCodeUpdate(getVisualOptionsPatch());
+                    });
+                });
+
+                const logoUpload = document.getElementById('logo-upload');
+                const logoRemove = document.getElementById('logo-remove');
+                const logoPreview = document.getElementById('logo-preview');
+                
+                logoUpload.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) {
+                        return;
+                    }
+
+                    if (!file.type.startsWith('image/')) {
+                        showToast('请上传图片文件', 'error');
+                        e.target.value = '';
+                        return;
+                    }
+
+                    if (file.size > MAX_LOGO_BYTES) {
+                        showToast('Logo 不能超过 2MB', 'error');
+                        e.target.value = '';
+                        return;
+                    }
+
+                    const token = ++logoReadToken;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        if (token !== logoReadToken) {
+                            return;
+                        }
+
+                        state.logo = event.target.result;
+                        logoPreview.innerHTML = `<img src="${state.logo}" alt="Logo">`;
+                        logoRemove.classList.remove('hidden');
+                        queueQRCodeUpdate({ image: state.logo });
+                        showToast('Logo 上传成功', 'success');
+                    };
+                    reader.onerror = () => {
+                        if (token !== logoReadToken) {
+                            return;
+                        }
+
+                        showToast('Logo 读取失败', 'error');
+                    };
+                    reader.readAsDataURL(file);
+                });
+                
+                logoRemove.addEventListener('click', () => {
+                    if (!state.logo) {
+                        return;
+                    }
+
+                    logoReadToken += 1;
+                    state.logo = null;
+                    logoPreview.innerHTML = PLACEHOLDER_LOGO_SVG;
+                    logoRemove.classList.add('hidden');
+                    document.getElementById('logo-upload').value = '';
+                    queueQRCodeUpdate({ image: null });
+                });
+
+                // Color pickers
+                const dotsColorInput = document.getElementById('dots-color');
+                const bgColorInput = document.getElementById('bg-color');
+                const gradientStartInput = document.getElementById('gradient-start');
+                const gradientEndInput = document.getElementById('gradient-end');
+                const gradientToggle = document.getElementById('gradient-toggle');
+                const gradientColorsContainer = document.getElementById('gradient-colors');
+                
+                dotsColorInput.addEventListener('input', (e) => {
+                    if (state.dotsColor === e.target.value) {
+                        return;
+                    }
+
+                    state.dotsColor = e.target.value;
+
+                    if (!state.useGradient) {
+                        queueQRCodeUpdate(getVisualOptionsPatch());
+                    }
+                });
+                
+                bgColorInput.addEventListener('input', (e) => {
+                    if (state.backgroundColor === e.target.value) {
+                        return;
+                    }
+
+                    state.backgroundColor = e.target.value;
+                    queueQRCodeUpdate({
+                        backgroundOptions: {
+                            color: state.backgroundColor
+                        }
+                    });
+                });
+                
+                gradientToggle.addEventListener('click', () => {
+                    state.useGradient = !state.useGradient;
+                    gradientToggle.classList.toggle('active', state.useGradient);
+                    gradientColorsContainer.classList.toggle('hidden', !state.useGradient);
+                    queueQRCodeUpdate(getVisualOptionsPatch());
+                });
+                
+                gradientStartInput.addEventListener('input', (e) => {
+                    if (state.gradientStart === e.target.value) {
+                        return;
+                    }
+
+                    state.gradientStart = e.target.value;
+
+                    if (state.useGradient) {
+                        queueQRCodeUpdate(getVisualOptionsPatch());
+                    }
+                });
+                
+                gradientEndInput.addEventListener('input', (e) => {
+                    if (state.gradientEnd === e.target.value) {
+                        return;
+                    }
+
+                    state.gradientEnd = e.target.value;
+
+                    if (state.useGradient) {
+                        queueQRCodeUpdate(getVisualOptionsPatch());
+                    }
+                });
+                
+                const sizeSlider = document.getElementById('qr-size');
+                const sizeValue = document.getElementById('size-value');
+                
+                sizeSlider.addEventListener('input', (e) => {
+                    const nextSize = parseInt(e.target.value, 10);
+                    if (nextSize === state.size) {
+                        sizeValue.textContent = `${state.size}px`;
+
+                        if (sizeCommitTimer) {
+                            clearTimeout(sizeCommitTimer);
+                            sizeCommitTimer = null;
+                        }
+                        return;
+                    }
+
+                    sizeValue.textContent = `${nextSize}px`;
+                    applyContainerSize(nextSize);
+                    scheduleSizeCommit(nextSize, sizeValue);
+                });
+
+                const flushSizeCommit = () => {
+                    if (sizeCommitTimer) {
+                        clearTimeout(sizeCommitTimer);
+                        sizeCommitTimer = null;
+                    }
+
+                    const currentSliderSize = parseInt(sizeSlider.value, 10);
+                    if (currentSliderSize !== state.size) {
+                        state.size = currentSliderSize;
+                        sizeValue.textContent = `${state.size}px`;
+                        applyContainerSize(state.size);
+                        queueQRCodeUpdate({
+                            ...getContainerSizePatch()
+                        });
+                        return;
+                    }
+
+                    sizeValue.textContent = `${state.size}px`;
+                };
+
+                sizeSlider.addEventListener('change', flushSizeCommit);
+                sizeSlider.addEventListener('mouseup', flushSizeCommit);
+                sizeSlider.addEventListener('touchend', flushSizeCommit);
+                sizeSlider.addEventListener('keyup', (e) => {
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') {
+                        flushSizeCommit();
+                    }
+                });
+
+                document.getElementById('btn-copy').addEventListener('click', copyToClipboard);
+                document.getElementById('btn-download-png').addEventListener('click', () => downloadQRCode('png'));
+                document.getElementById('btn-download-svg').addEventListener('click', () => downloadQRCode('svg'));
+            }
+
+            function copyToClipboard() {
+                if (isRenderBusy()) {
+                    showToast('正在渲染，请稍后再试', 'error');
+                    return;
+                }
+
+                const activeLayer = qrLayers[activeQrIndex] || document.getElementById('qr-canvas');
+                const canvas = activeLayer.querySelector('canvas');
+                if (!canvas) {
+                    showToast('当前没有可复制的二维码', 'error');
+                    return;
+                }
+
+                const fallbackCopy = () => {
+                    const dataUrl = canvas.toDataURL('image/png');
+
+                    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+                        showToast('当前环境不支持剪贴板写入', 'error');
+                        return;
+                    }
+
+                    navigator.clipboard.writeText(dataUrl).then(() => {
+                        showToast('已复制到剪贴板（DataURL）', 'success');
+                    }).catch(() => {
+                        showToast('复制失败', 'error');
+                    });
+                };
+
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        fallbackCopy();
+                        return;
+                    }
+
+                    if (!navigator.clipboard || typeof window.ClipboardItem === 'undefined') {
+                        fallbackCopy();
+                        return;
+                    }
+
+                    navigator.clipboard.write([
+                        new window.ClipboardItem({ 'image/png': blob })
+                    ]).then(() => {
+                        showToast('已复制到剪贴板', 'success');
+                    }).catch(() => {
+                        fallbackCopy();
+                    });
+                }, 'image/png');
+            }
+
+            function downloadQRCode(extension) {
+                if (!qrCode) {
+                    showToast('二维码尚未就绪', 'error');
+                    return;
+                }
+
+                if (isRenderBusy()) {
+                    showToast('正在渲染，请稍后再试', 'error');
+                    return;
+                }
+
+                qrCode.download({ name: 'qrcode', extension });
+                const label = extension.toUpperCase();
+                showToast(`${label} 下载成功！`, 'success');
+            }
+
+            function showToast(message, type = 'success') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const icon = type === 'success' 
+                    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>'
+                    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+                
+                toast.innerHTML = `${icon}<span>${message}</span>`;
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(20px)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            function debounce(fn, delay) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+
+            function init() {
+                if (!isQrLibraryReady()) {
+                    showToast('二维码库加载失败，请刷新页面后重试', 'error');
+                    return;
+                }
+
+                initPerfPanel();
+                initControls();
+                initQRCode();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+    </script>
+</body>
+</html>
