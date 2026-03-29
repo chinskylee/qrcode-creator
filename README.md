@@ -2,7 +2,8 @@
 
 > **"站在巨人的肩膀上，探索AI辅助开发的可能性。"**
 
-**在线演示**: [https://qr-code.lyralex.qzz.io](https://qr-code.lyralex.qzz.io)
+**在线演示**: [https://qr-code.lyralex.qzz.io](https://qr-code.lyralex.qzz.io)  
+**GitHub Pages**: [https://chinskylee.github.io/qrcode-creator](https://chinskylee.github.io/qrcode-creator)
 
 ---
 
@@ -196,7 +197,8 @@ python -m http.server 8000
 ## 🌐 部署信息
 
 ### **GitHub Pages 部署**
-- **演示地址**: [https://qr-code.lyralex.qzz.io](https://qr-code.lyralex.qzz.io)
+- **自定义域名**: [https://qr-code.lyralex.qzz.io](https://qr-code.lyralex.qzz.io)
+- **GitHub Pages**: [https://chinskylee.github.io/qrcode-creator](https://chinskylee.github.io/qrcode-creator)
 - **部署方式**: GitHub Pages 静态托管
 - **访问方式**: 支持所有现代浏览器
 
